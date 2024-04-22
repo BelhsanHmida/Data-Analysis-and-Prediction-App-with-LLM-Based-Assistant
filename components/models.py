@@ -32,7 +32,7 @@ class GenModel():
             raise CustomException(f"Error generating content", e)   
 
 if __name__ == "__main__":
-    my_model = GenModel('AIzaSyAqvNZVUqtGV11jRewG06nEH9_NJzZmpjI','gemini-pro')
+    my_model = GenModel(API_key,'gemini-pro')
     my_model.load_model()
     genertated_text = my_model.model.generate_content('what is the son of a king called?') 
 
