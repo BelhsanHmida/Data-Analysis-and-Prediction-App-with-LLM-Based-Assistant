@@ -18,7 +18,7 @@ sys.path.append(parent_dir)'''
 
  
  
-gen_model = GenModel('AIzaSyAqvNZVUqtGV11jRewG06nEH9_NJzZmpjI','gemini-pro')
+gen_model = GenModel(API_key,'gemini-pro')
 gen_model.load_model()
 
 
