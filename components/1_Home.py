@@ -13,7 +13,7 @@ from models import GenModel
 from data_ingestion import DataIngestion
 
 
-my_model = GenModel('AIzaSyAqvNZVUqtGV11jRewG06nEH9_NJzZmpjI','gemini-pro')
+my_model = GenModel(API_key,'gemini-pro')
 my_model.load_model()
 my_model=my_model.model
 
