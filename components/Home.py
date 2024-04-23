@@ -15,7 +15,7 @@ import shutil
 from exceptions import CustomException
 from logger import logging
 
-my_model = GenModel(api_key=,'gemini-pro')
+my_model = GenModel(api_key= ,'gemini-pro')
 my_model.load_model()
 my_model=my_model.model
 
