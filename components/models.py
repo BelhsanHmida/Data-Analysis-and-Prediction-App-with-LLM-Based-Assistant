@@ -6,7 +6,9 @@ import google.generativeai as genai
  
 
  
-
+class helloworld():
+    def __init__(self):
+        print("Hello World")
 class GenModel():
     def __init__ (self,api_key,model_name): 
         self.api_key = api_key
@@ -32,7 +34,7 @@ class GenModel():
             raise CustomException(f"Error generating content", e)   
 
 if __name__ == "__main__":
-    my_model = GenModel('AIzaSyAqvNZVUqtGV11jRewG06nEH9_NJzZmpjI','gemini-pro')
+    my_model = GenModel(api_key=,'gemini-pro')
     my_model.load_model()
     genertated_text = my_model.model.generate_content('what is the son of a king called?') 
 
