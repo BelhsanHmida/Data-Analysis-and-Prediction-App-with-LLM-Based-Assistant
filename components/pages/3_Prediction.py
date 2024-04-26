@@ -80,7 +80,7 @@ if True:
     st.write("Data Description:", data_description)
  
     st.sidebar.subheader(f"Target : {data_description['target']}")
-    if data_description['Data_type'] == 'Regression':
+    if data_description['Data_type'] == 'Classification':
         recomended_models = ['Logistic Regression', 'Random Forest','XGBoost classifier', 'Gradient Boosting classification']
     else:
         recomended_models = ['Linear Regression', 'Ridge Regression', 'Lasso Regression','XGBoost regressor', 'Random Forest Regression', 'Gradient Boosting Regression']      
