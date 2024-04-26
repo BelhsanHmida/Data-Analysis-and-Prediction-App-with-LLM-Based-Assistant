@@ -112,8 +112,7 @@ def main():
 
 
 
-Replicate_Api_key = 'r8_En9hgUT0LeT3JAqzCGYGR8PrK9NOiVF12T4xe' 
-Google_Api_key = 'AIzaSyAqvNZVUqtGV11jRewG06nEH9_NJzZmpjI'   
+
 Google_Api_key = st.sidebar.text_input("Enter your Google API key",type='password') 
 Replicate_Api_key =st.sidebar.text_input("Enter your Replicate API key",type='password') 
 os.environ['REPLICATE_API_TOKEN'] = Replicate_Api_key 

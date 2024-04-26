@@ -34,4 +34,4 @@ class GenModel():
             raise CustomException(f"Error generating content", e)   
 
 if __name__ == "__main__":
-     print("Hello World")      
+    print("Hello World")      
