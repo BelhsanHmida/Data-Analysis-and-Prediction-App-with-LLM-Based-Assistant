@@ -3,21 +3,33 @@ import pandas as pd
 import plotly.express as px
 import numpy as np
 import pandas as pd 
-import seaborn as sns
-import matplotlib.pyplot as plt
+import time
 import sys
-import os
-import google.generativeai as genai
 import re
+import shutil
+
 from models import GenModel
 from data_ingestion import DataIngestion
-import shutil
+
 from exceptions import CustomException
 from logger import logging
+from utils import clear_artifacts, reset_session_state, validate_file_name, add_space   
 
-my_model = GenModel(api_key= ,'gemini-pro')
-my_model.load_model()
-my_model=my_model.model
+sys.path.append(r'Data_Analysis_App')
+st.set_page_config(page_title="Data Analysis", page_icon="📊", layout='wide')        
+
+Api_key=st.sidebar.text_input("Enter your Google API key",type='password') 
+Replicate_Api_key=st.sidebar.text_input("Enter your Replicate API key",type='password') 
+
+def load_model(Api_key,model_name):
+    try:
+        Gen_model = GenModel(Api_key,model_name)
+        Gen_model.load_model()
+        model=Gen_model.model
+        return model
+    except Exception as e:
+        st.error("Error loading model")
+        logging.info(f"Error loading model", e)
 
 @st.cache_data
 def Ingest_Data(df, data_description, target, Data_type,Data_name):
@@ -150,15 +162,21 @@ def plt_Feature_description (dataf):
     context = dataf.description
     features = dataf.data.columns
     descriptions={}
+    counter=0
     for feature in features:
-        description = my_model.generate_content(f"in the context of {context} dataset describe what is the feature :{feature} in 5 words or less")
-        descriptions[feature]=description.text
+        counter=+1
+        if counter>30:
+            time.sleep(30)
+            counter=0 
+        
+        description = Gemini_model.generate_content(f"in the context of {context} dataset describe what is the feature :{feature} in 5 words or less")
+        descriptions[feature]=description
     descriptions_df = pd.DataFrame(descriptions.items(), columns=['Feature', 'Ai Generated Description'])
-
+   
     # Apply the lambda function to the specific column
-    styled_df = descriptions_df.style.applymap(color_green, subset=['Ai Generated Description'])   
-    st.dataframe(styled_df,width= 1500)    
-
+    styled_df = descriptions_df.style.applymap(color_green, subset=['Ai Generated Description'])
+    st.dataframe(styled_df,width=1500 )   
+@st.cache_data
 def plot_data_info(dataf,description):
     dataf.generate_data_overview()
     description_df=dataf.overview
@@ -176,54 +194,30 @@ def plot_data_info(dataf,description):
     
     st.subheader('Do you need help to understand Features?')
     try:
-        plt_Feature_description(dataf)
+        if data.shape[1]<30:
+            plt_Feature_description(dataf)
+        else:
+            st.write("Too many features to describe.")    
     except Exception as e:
         st.warning("Could not load description info could be a token limit try again in 2 mins.")  # Display a warning message
         
         # You can also log the error or take other actions here
-         
-
-    st.title("Numerical Features Analysis")
-    plot_Num_data_info(dataf)
+    st.title("Numerical Features Analysis")    
+    try:   
+        plot_Num_data_info(dataf)
+    except Exception as e:
+        st.warning("Could not load Numerical Features Analysis")
     
     st.title("Target Feature Analysis :")
-    plot_target_info(dataf)    
+    try:
+        plot_target_info(dataf)    
+    except Exception as e:
+        st.warning("Could not load Target Feature Analysis")
 
 
-def add_space(space):
-    for i in range(space):
-        st.write("")
-
-def reset_session_state():   
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-        
-
-def clear_artifacts(folder_path):
-    # Check if the folder exists
-    if os.path.exists(folder_path):
-        # Delete all files in the folder
-        for file_name in os.listdir(folder_path):
-            file_path = os.path.join(folder_path, file_name)
-            if os.path.isfile(file_path):
-                os.remove(file_path)  # Delete the file
-            elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)  # Delete the directory and its contents
-        return True
-    else:
-        return False 
-    
-def validate_file_name(raw_name):
-    # Disallowed characters that should not be in a file name
-    forbidden_chars = r'[\ / ? % * : | " < >]'
-    
-    # Replace spaces with underscores and remove forbidden characters
-    formatted_name = re.sub(forbidden_chars, "", raw_name.strip().replace(" ", "_"))
-
-    return formatted_name
 
 def main ():
-    st.set_page_config(page_title="Data Analysis", page_icon="📊", layout='wide')
+    
      
     col1, col2 = st.columns([6, 1]) 
     global data_name
@@ -238,7 +232,8 @@ def main ():
                 st.warning("Artifact folder does not exist or is already empty.")
             reset_session_state()
             st.experimental_rerun()
-    st.title("Configuration")
+
+    st.subheader("Configuration")
     uploaded_files = st.file_uploader("Upload a CSV file", type=["csv", "xlsx"], accept_multiple_files=True)
     
     with st.sidebar:
@@ -276,6 +271,7 @@ def main ():
         f"The file name '{pre_data_name}' contained invalid characters or extra spaces. It has been formatted to '{data_name}'."
     )
         add_space(1)
+
         st.subheader("What type of problem are you trying to solve?")
         Data_type = st.radio('Select the type of Problem', ['Regression', 'Classification'])
         st.write("Data Type:", Data_type)
@@ -298,22 +294,22 @@ def main ():
 
     if st.button("Load Data")  :
         st.session_state.Load_data = True
+
+    if st.session_state.Load_data:    
         st.text(f'data_description: {data_description}, target: {target}, Data Type: {Data_type}')
         dataf=Ingest_Data(df,data_description=data_description, target=target, Data_type=Data_type,Data_name=data_name)
         plot_data_info(dataf,data_description)
         st.write('--------')
-        dataf.data.save_data(Data_type)
+        dataf.save_data(Data_type,path=dataf.data_path)
           
         col1, col2 = st.columns([1,2.3]) 
         with col2:
             st.subheader("Data Loaded Successfully!")
 
 
-       
-           
-
-     
 
 
+Gemini_model=load_model(Api_key,'gemini-pro')
+    
 if __name__ == "__main__":  
     main()

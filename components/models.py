@@ -34,8 +34,4 @@ class GenModel():
             raise CustomException(f"Error generating content", e)   
 
 if __name__ == "__main__":
-    my_model = GenModel(api_key=,'gemini-pro')
-    my_model.load_model()
-    genertated_text = my_model.model.generate_content('what is the son of a king called?') 
-
-    print(genertated_text.text)       
+     print("Hello World")      

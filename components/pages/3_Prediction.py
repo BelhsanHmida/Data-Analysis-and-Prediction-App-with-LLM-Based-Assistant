@@ -1,132 +1,204 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
+
+from io import StringIO 
+
 import plotly.graph_objs as go
+import plotly.express as px
+ 
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
-from sklearn.linear_model import LogisticRegression, RidgeClassifier
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.neural_network import MLPClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, mean_squared_error, r2_score
+ 
+ 
+from sklearn.linear_model import LogisticRegression, LinearRegression, Ridge, Lasso
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, GradientBoostingClassifier, GradientBoostingRegressor
+from xgboost import XGBClassifier, XGBRegressor
+ 
+from logger import logging
+from utils import load_object,save_objects,initialize_artifact_folder,check_artifact_folder
+
+import os
+
+ 
 
 
-def impute_missing_values(df):
-    cat_features = df.select_dtypes(include=['object']).columns
-    for cat_feature in cat_features:
-        mode = df[cat_feature].mode()[0]
-        df[cat_feature].fillna(mode, inplace=True)
-    num_features = df.select_dtypes(include=['int64', 'float64']).columns
-    for num_feature in num_features:
-        mean = df[num_feature].mean()
-        df[num_feature].fillna(mean, inplace=True)
-    return df
+ 
 
 
-def normalize(X):
-    means = np.mean(X, axis=0)
-    stds = np.std(X, axis=0)
-    normalized_X = (X - means) / stds
-    return normalized_X
-
-
-def plot_confusion_matrix(conf_matrix, classes):
-    plt.figure(figsize=(11, 3))
-    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=classes, yticklabels=classes)
-    plt.xlabel('Predicted Labels')
-    plt.ylabel('True Labels')
-    plt.title('Confusion Matrix')
-    st.set_option('deprecation.showPyplotGlobalUse', False)
-    st.pyplot()
-
-
-def main():
-    st.set_page_config(page_title="Prediction", page_icon="🔮", layout="wide")
-
-    # Load data
-    data = pd.read_csv(r'C:\Users\hp\Desktop\DataAnalysisApp\Data_Analysis_App\artifact\HousePriceData.csv')
-    data = data.sample(200)
-
-    # Impute missing values
-    data = impute_missing_values(data)
-
-    # Feature engineering and normalization
-    X = data.drop(columns=['SalePrice'])  # Features
-    Y = data['SalePrice']  # Target
-
-    # One-hot encoding for categorical variables
-    features = list(X.columns)
-    numerical_vars = X.select_dtypes(include=['int64', 'float64']).columns
-    cat_vars = list(set(features) - set(numerical_vars))
-    for var in cat_vars:
-        one_hot_df = pd.get_dummies(X[var], prefix=var)
-        X = pd.concat([X, one_hot_df], axis=1)
-        X.drop(var, axis=1, inplace=True)
-
-    X = normalize(X)
-
-    # Train-test split
-    X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=.2, random_state=42)
-
-    # Define classifiers
-    classifiers = {
-        'Logistic Regression': LogisticRegression(solver='lbfgs', penalty='l2', max_iter=1000000, multi_class='multinomial'),
-        'Random Forest Classifier': RandomForestClassifier(n_estimators=100, random_state=123),
-        'Ridge Classifier': RidgeClassifier(alpha=1.0, solver='auto', random_state=123),
-        'Gradient Boosting Classifier': GradientBoostingClassifier(n_estimators=100, random_state=123),
-        'Multi-layer Perceptron Classifier': MLPClassifier(hidden_layer_sizes=(15, 10), alpha=3, learning_rate='adaptive', max_iter=100000),
-    }
-
-    # Sidebar
-    st.sidebar.title('Model Selection')
-    selected_model = st.sidebar.selectbox('Choose a model', list(classifiers.keys()))
-
-    # Model training and evaluation
-    selected_clf = classifiers[selected_model]
-    selected_clf.fit(X_train, y_train)
-    y_pred = selected_clf.predict(X_test)
-
-    # Evaluation metrics
-    st.title('Alzheimer\'s Disease Prediction')
-    st.write('-------')
-    st.write('## 🔍 Model Evaluation:', selected_model)
-
-    evaluation_metrics = {
-        'Metric': ['Accuracy', 'Precision', 'Recall', 'F1 Score'],
-        'Value': [
-            accuracy_score(y_test, y_pred),
-            precision_score(y_test, y_pred, average='weighted'),
-            recall_score(y_test, y_pred, average='weighted'),
-            f1_score(y_test, y_pred, average='weighted')
-        ]
-    }
-
-    # Create a DataFrame from the evaluation metrics dictionary
-    metrics_df = pd.DataFrame(evaluation_metrics)
-
-    # Color-based formatting for metrics
-    red_color = '#ff0000'  # Red color
-    green_color = '#00ff00'  # Green color
+ 
+def load_pred_model(model_name):
+    if model_name == 'Logistic Regression':
+        model = LogisticRegression()
+    elif model_name == 'Random Forest': 
+        model = RandomForestClassifier()
+    elif model_name == 'XGBoost classifier':
+        model = XGBClassifier()
+    elif model_name == 'Gradient Boosting classification':
+        model = GradientBoostingClassifier()
+    elif model_name == 'Random Forest Regression':
+        model = RandomForestRegressor()
+    elif model_name == 'Linear Regression':
+        model = LinearRegression()
+    elif model_name == 'Ridge Regression':
+        model = Ridge()
+    elif model_name == 'Lasso Regression':
+        model = Lasso()
+    elif model_name == 'XGBoost regressor':
+        model = XGBRegressor()
+    elif model_name == 'Gradient Boosting Regression':
+        model = GradientBoostingRegressor()
+    else:
+        raise ValueError(f"Unknown model name: {model_name}")
     
-    def apply_color(value):
-        trend_float = float(value)
-        if trend_float > 0.5:
-            return f'background-color: {green_color}; color: black'
-        elif trend_float < 0.5:
-            return f'background-color: {red_color}; color: black'
+    return model
+ 
+
+
+
+def select_file(artifact_folder='artifact'):
+
+    initialize_artifact_folder(artifact_folder)
+    artifact_files = check_artifact_folder(artifact_folder)
+    selection_list = [x for x in artifact_files if x.endswith('.csv')]
+    selected_data = st.sidebar.selectbox('Pick DataSet',selection_list)
+    selected_data_description = selected_data.split('.')[0] + '_description.pkl'
+    if artifact_files:
+        # Load and display the first file based on its extension
+        data_description = load_object(os.path.join(artifact_folder,selected_data_description))
+        data = load_object(os.path.join(artifact_folder, selected_data))
+        st.write("Data Description:", data_description)
+        
+    return data, data_description 
+
+#main page    
+
+if True:
+    # Load and display the first file based on its extension
+    data ,data_description = select_file(artifact_folder='artifact')
+    
+    st.write("Data Description:", data_description)
+ 
+    st.sidebar.subheader(f"Target : {data_description['target']}")
+    if data_description['Data_type'] == 'Regression':
+        recomended_models = ['Logistic Regression', 'Random Forest','XGBoost classifier', 'Gradient Boosting classification']
+    else:
+        recomended_models = ['Linear Regression', 'Ridge Regression', 'Lasso Regression','XGBoost regressor', 'Random Forest Regression', 'Gradient Boosting Regression']      
+    st.sidebar.subheader(f"Type : {data_description['Data_type']}")
+    st.sidebar.subheader("Recommendend Models : ")
+    Pred_model=st.sidebar.selectbox("Pick a model", recomended_models)
+    if 'prediction_model' not in st.session_state:
+        st.session_state['prediction_model'] = False
+    if st.sidebar.button('Predict'):
+        st.session_state['prediction_model'] = Pred_model
+# Page navigation logic
+
+
+
+ 
+target = data_description['target']
+if st.session_state['prediction_model']:
+    st.subheader(f"Predicting {target} using {st.session_state['prediction_model']}")
+ 
+    model=load_pred_model(st.session_state['prediction_model']) 
+   
+ 
+     
+    X = data.drop(target, axis=1)
+    y = data[target]
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    if data_description['Data_type'] == 'Classification':
+        st.write("Accuracy:", accuracy_score(y_test, y_pred))
+        st.write("Precision:", precision_score(y_test, y_pred, average='weighted'))
+        st.write("Recall:", recall_score(y_test, y_pred, average='weighted'))
+        st.write("F1 Score:", f1_score(y_test, y_pred, average='weighted'))
+        st.write("Confusion Matrix:")
+        st.write(confusion_matrix(y_test, y_pred))
+    else:
+        fig = px.scatter(x=y_test, y=y_pred, labels={'x': 'Actual', 'y': 'Predicted'}, title='Predicted vs. Actual')
+        fig.add_trace(go.Scatter(x=y_test, y=y_test, mode='lines', name='Ideal'))
+        st.plotly_chart(fig)
+        residuals = y_test - y_pred
+
+        # Scatter plot of residuals
+        fig = px.scatter(x=y_pred, y=residuals, labels={'x': 'Predicted', 'y': 'Residual'}, title='Residual Plot')
+        fig.add_trace(go.Scatter(x=[min(y_pred), max(y_pred)], y=[0, 0], mode='lines', name='Zero Residual'))
+        st.plotly_chart(fig)
+
+        st.subheader(f"Mean Squared Error  : {mean_squared_error(y_test, y_pred):.2f}")
+        st.subheader(f"R2 Score       :  {r2_score(y_test, y_pred):.2f}")
+ 
+        if hasattr(model, 'feature_importances_'):
+            feature_importance = model.feature_importances_
+            
+            
+            importance_df = pd.DataFrame({'Feature': X.columns, 'Importance': feature_importance})
+            importance_df = importance_df.sort_values(by='Importance', ascending=False)
+            features = importance_df['Feature'][:10]
+            # Use Plotly to create a bar plot for feature importance
+            fig = px.bar(
+                importance_df,
+                x='Feature',
+                y='Importance',
+                title='Feature Importance for Random Forest',
+                labels={'Feature': 'Features', 'Importance': 'Importance'},
+                height=400
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
+
+            st.write("Feature Importance:")
+            st.write(features.tolist())
+            features = features.tolist()
+           
+            X = data[features]
+            y = data[target]
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            model.fit(X_train, y_train)
+            y_pred = model.predict(X_test)
+            if data_description['Data_type'] == 'Classification':
+                st.write("Accuracy:", accuracy_score(y_test, y_pred))
+                st.write("Precision:", precision_score(y_test, y_pred, average='weighted'))
+                st.write("Recall:", recall_score(y_test, y_pred, average='weighted'))
+                st.write("F1 Score:", f1_score(y_test, y_pred, average='weighted'))
+                st.write("Confusion Matrix:")
+                st.write(confusion_matrix(y_test, y_pred))
+            else:
+                fig = px.scatter(x=y_test, y=y_pred, labels={'x': 'Actual', 'y': 'Predicted'}, title='Predicted vs. Actual')
+                fig.add_trace(go.Scatter(x=y_test, y=y_test, mode='lines', name='Ideal'))
+                st.plotly_chart(fig)
+                residuals = y_test - y_pred
+
+                # Scatter plot of residuals
+                fig = px.scatter(x=y_pred, y=residuals, labels={'x': 'Predicted', 'y': 'Residual'}, title='Residual Plot')
+                fig.add_trace(go.Scatter(x=[min(y_pred), max(y_pred)], y=[0, 0], mode='lines', name='Zero Residual'))
+                st.plotly_chart(fig)
+
+                st.subheader(f"Mean Squared Error              : {mean_squared_error(y_test, y_pred):.2f}")
+                st.subheader(f"R2 Score                   :  {r2_score(y_test, y_pred):.2f}")
+
+                # Convert the DataFrame to CSV in memory
+                df=pd.DataFrame(y_pred,columns=['Predicted'])
+                csv_buffer = StringIO()
+                df.to_csv(csv_buffer, index=False)
+                csv_data = csv_buffer.getvalue()
+
+                # Create a download button
+                st.download_button(
+                    label='Download Predictions as CSV',
+                    data=csv_data,
+                    file_name='sample_data.csv',  # Default name for the downloaded file
+                    mime='text/csv'  # MIME type for CSV files
+                )
+
+                st.write("Download the CSV file by clicking the button above.")
+
         else:
-            return ''
-
-    styled_metrics_df = metrics_df.style.applymap(apply_color, subset=['Value'])
-
-    # Display the styled DataFrame
-    st.write(styled_metrics_df)
-
-    # Confusion matrix
-    st.write('### Confusion Matrix')
-    conf_matrix = confusion_matrix(y_test, y_pred)
-    plot_confusion_matrix(conf_matrix, selected_clf.classes_)
+            st.write("This model does not provide feature importances.")
 
 
-if __name__ == "__main__":
-    main()
+        
+
+

@@ -1,0 +1,11 @@
+pickl
+dill
+dataclasses
+numpy 
+pandas
+streamlit
+google.generativeai
+plotly.express
+seaborn 
+matplotlib
+scikit-learn

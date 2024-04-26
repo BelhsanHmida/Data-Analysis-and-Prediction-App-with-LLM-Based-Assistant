@@ -8,11 +8,12 @@ import pandas as pd
 from utils import save_objects 
 from logger import logging
 from exceptions import CustomException
-
+ 
 from models import GenModel
 
- 
-gen_model = GenModel(api_key=,'gemini-pro')
+Api_key='AIzaSyAqvNZVUqtGV11jRewG06nEH9_NJzZmpjI'
+
+gen_model = GenModel(Api_key,'gemini-pro')
 gen_model.load_model()
 
 @dataclass  
@@ -54,18 +55,20 @@ class DataIngestion:
         except Exception as e:
             logging.error(f"Error generating column description: {e}")
             raise CustomException(f"Error generating column description", e)
-    def save_data(self,data_type):
+    def save_data(self,data_type,path):
         try:
             logging.info("Saving data")
             description={'name':self.name,'target':self.target,'Data_type':self.data_type}
             description_path = os.path.join("artifact", f"{self.name}_description.pkl")
             save_objects(description_path,description) 
-            print(self.data_path)
-            save_objects(self.data_path,self.data) 
+            save_objects(path,self.data) 
             logging.info("Data and data_description saved successfully")
         except Exception as e:
             logging.error(f"Error saving data: {e}")
             raise CustomException(f"Error saving data", e)
+        
+    
+
 if __name__ == "__main__" :
     
     genertated_text = gen_model.model.generate_content(' what is 4+5') 
