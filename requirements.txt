@@ -5,7 +5,17 @@ numpy
 pandas
 streamlit
 google.generativeai
+replicate
 plotly.express
+plotly.graph_objs
 seaborn 
 matplotlib
 scikit-learn
+pandas
+numpy
+scipy
+category_encoders
+datetime
+xgboost
+category_encoders 
+ 
