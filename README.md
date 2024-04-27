@@ -17,5 +17,10 @@ This application provides comprehensive tools for data analysis and feature engi
 - **Assistant Chatbot**: A conversational assistant that uses Llama 3 and Google Gemini to guide users through data analysis, feature engineering, and predictive modeling 🤖.
 - **Interactive Interface**: An intuitive user interface for seamless interactions and insights 🖥️.
 
-## Getting Started 🏁
-To get started with this application, follow these steps:
+## Technologies Used 🛠️
+- **Streamlit**: A framework for building interactive web-based applications in Python.
+- **Llama 3**: A large language model used for conversational AI.
+- **Google Gemini**: Google's multi-modal AI model for more advanced conversational capabilities.
+- **Pandas**: A data analysis library for data manipulation and exploration.
+- **Scikit-learn**: A machine learning library for building predictive models.
+- **Matplotlib/Seaborn**: Libraries for data visualization and plotting.
