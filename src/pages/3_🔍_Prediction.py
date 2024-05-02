@@ -143,8 +143,10 @@ if st.session_state['prediction_model']:
 
             Explain these metrics, identify any that are below general standards, and suggest potential causes for low scores.
             """ 
-            Response = Gemini_model.generate_content(prompt).text           
-            st.write_stream([x for x in Response])       
+            with st.spinner('Generating Metrics Explainer...'):
+                Response = Gemini_model.generate_content(prompt).text           
+                st.write_stream([x for x in Response])
+                  
         fig = px.scatter(x=y_test, y=y_pred, labels={'x': 'Actual', 'y': 'Predicted'}, title='Predicted vs. Actual')
         fig.add_trace(go.Scatter(x=y_test, y=y_test, mode='lines', name='Ideal'))
         st.plotly_chart(fig)
