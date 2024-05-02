@@ -16,16 +16,20 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, Grad
 from xgboost import XGBClassifier, XGBRegressor
  
 from logger import logging
-from utils import load_object,save_objects,initialize_artifact_folder,check_artifact_folder
+from utils import load_object,save_objects,initialize_artifact_folder,check_artifact_folder,get_api_key,load_Gemini_model
 
 import os
 
  
 
+Google_Api_key = get_api_key("Google_API_KEY")
+ 
+Gemini_model=load_Gemini_model(Google_Api_key)
+
 
  
 
-
+st.set_page_config(page_title="🔍 Prediction")
  
 def load_pred_model(model_name):
     if model_name == 'Logistic Regression':
@@ -60,14 +64,14 @@ def select_file(artifact_folder='artifact'):
 
     initialize_artifact_folder(artifact_folder)
     artifact_files = check_artifact_folder(artifact_folder)
-    selection_list = [x for x in artifact_files if x.endswith('.csv')]
+    selection_list = [x for x in artifact_files if x.startswith("Modified_") and x.endswith('.csv') ]
     selected_data = st.sidebar.selectbox('Pick DataSet',selection_list)
     selected_data_description = selected_data.split('.')[0] + '_description.pkl'
     if artifact_files:
         # Load and display the first file based on its extension
         data_description = load_object(os.path.join(artifact_folder,selected_data_description))
         data = load_object(os.path.join(artifact_folder, selected_data))
-        st.write("Data Description:", data_description)
+        
         
     return data, data_description 
 
@@ -76,22 +80,32 @@ def select_file(artifact_folder='artifact'):
 if True:
     # Load and display the first file based on its extension
     data ,data_description = select_file(artifact_folder='artifact')
-    
     st.write("Data Description:", data_description)
  
     st.sidebar.subheader(f"Target : {data_description['target']}")
     if data_description['Data_type'] == 'Classification':
+        classification_type = st.sidebar.radio(
+    "Choose Classification Type",
+    ('Binary', 'Multi-class')
+)
+        if classification_type == 'Binary':
+            average_type = 'binary'  # suitable for binary classification
+        else:
+            average_type = 'weighted'
+
         recomended_models = ['Logistic Regression', 'Random Forest','XGBoost classifier', 'Gradient Boosting classification']
     else:
         recomended_models = ['Linear Regression', 'Ridge Regression', 'Lasso Regression','XGBoost regressor', 'Random Forest Regression', 'Gradient Boosting Regression']      
     st.sidebar.subheader(f"Type : {data_description['Data_type']}")
     st.sidebar.subheader("Recommendend Models : ")
+
     Pred_model=st.sidebar.selectbox("Pick a model", recomended_models)
     if 'prediction_model' not in st.session_state:
         st.session_state['prediction_model'] = False
     if st.sidebar.button('Predict'):
         st.session_state['prediction_model'] = Pred_model
 # Page navigation logic
+
 
 
 
@@ -111,12 +125,26 @@ if st.session_state['prediction_model']:
     y_pred = model.predict(X_test)
     if data_description['Data_type'] == 'Classification':
         st.write("Accuracy:", accuracy_score(y_test, y_pred))
-        st.write("Precision:", precision_score(y_test, y_pred, average='weighted'))
-        st.write("Recall:", recall_score(y_test, y_pred, average='weighted'))
-        st.write("F1 Score:", f1_score(y_test, y_pred, average='weighted'))
+        st.write("Precision:", precision_score(y_test, y_pred, average=average_type))
+        st.write("Recall:", recall_score(y_test, y_pred, average=average_type))
+        st.write("F1 Score:", f1_score(y_test, y_pred, average=average_type))
         st.write("Confusion Matrix:")
         st.write(confusion_matrix(y_test, y_pred))
-    else:
+        st.write("Classification Report explanation:")
+        st.button('Generate Metrics Explainer', key='metrics_explainer')
+        if st.session_state.metrics_explainer:
+            prompt = f"""
+            Using {st.session_state["prediction_model"]} for {data_description} to predict {target}, 
+            the following metrics were obtained: 
+            - Accuracy: {accuracy_score(y_test, y_pred)} 
+            - Precision: {precision_score(y_test, y_pred)} 
+            - Recall: {recall_score(y_test, y_pred)} 
+            - F1 Score: {f1_score(y_test, y_pred)}
+
+            Explain these metrics, identify any that are below general standards, and suggest potential causes for low scores.
+            """ 
+            Response = Gemini_model.generate_content(prompt).text           
+            st.write_stream([x for x in Response])       
         fig = px.scatter(x=y_test, y=y_pred, labels={'x': 'Actual', 'y': 'Predicted'}, title='Predicted vs. Actual')
         fig.add_trace(go.Scatter(x=y_test, y=y_test, mode='lines', name='Ideal'))
         st.plotly_chart(fig)
@@ -178,25 +206,27 @@ if st.session_state['prediction_model']:
 
                 st.subheader(f"Mean Squared Error              : {mean_squared_error(y_test, y_pred):.2f}")
                 st.subheader(f"R2 Score                   :  {r2_score(y_test, y_pred):.2f}")
-
-                # Convert the DataFrame to CSV in memory
-                df=pd.DataFrame(y_pred,columns=['Predicted'])
-                csv_buffer = StringIO()
-                df.to_csv(csv_buffer, index=False)
-                csv_data = csv_buffer.getvalue()
-
-                # Create a download button
-                st.download_button(
-                    label='Download Predictions as CSV',
-                    data=csv_data,
-                    file_name='sample_data.csv',  # Default name for the downloaded file
-                    mime='text/csv'  # MIME type for CSV files
-                )
-
-                st.write("Download the CSV file by clicking the button above.")
-
         else:
             st.write("This model does not provide feature importances.")
+
+        st.write('------ ')
+        # Convert the DataFrame to CSV in memory
+        df=pd.DataFrame(y_pred,columns=['Predicted'])
+        csv_buffer = StringIO()
+        df.to_csv(csv_buffer, index=False)
+        csv_data = csv_buffer.getvalue()
+
+        # Create a download button
+        st.download_button(
+            label='Download Predictions as CSV',
+            data=csv_data,
+            file_name='sample_data.csv',  # Default name for the downloaded file
+            mime='text/csv'  # MIME type for CSV files
+        )
+
+        st.write("Download the CSV file by clicking the button above.")
+
+        
 
 
         

@@ -7,22 +7,17 @@ sys.path.append(r'\Data_Analysis_App')
 from models import GenModel
 from logger import logging
 from exceptions import CustomException
+from utils import get_api_key ,load_Gemini_model
+
+st.set_page_config(page_title="💬Chat-Assistant")
+
+Google_Api_key = get_api_key("Google_API_KEY")
+ 
+Gemini_model=load_Gemini_model(Google_Api_key)
  
 
-st.set_page_config(page_title="🦙💬 Assistant")
-
-@st.cache_resource
-def load_Gemini_model():
-    try:
-        model = GenModel(Google_Api_key,'gemini-pro')
-        model.load_model()
-        return model.model
-    except Exception as e:
-        st.error("Error loading model")
-        logging.info(f"Error loading model", e)
-
 def generate_response(name, temperature, top_p, max_length ,prompt_input,messages):
-    
+    name = 'Gemini-pro'
     string_dialogue = "You are a helpful assistant. You do not respond as 'User' or pretend to be 'User'. do not start the sentance with assitant: '."
     for dict_message in messages:
         content = dict_message["content"]
@@ -56,7 +51,7 @@ def generate_response(name, temperature, top_p, max_length ,prompt_input,message
                                         "temperature":temperature, "top_p":top_p, "max_length":max_length, "repetition_penalty":1})
             result = list(output)
             final_output = "".join(result)
-            return final_output
+            return 'final_output'
         except Exception as e:
             st.info("Error loading Llama2-13B model choose other model")
             logging.error(f"Error loading model", e) 
@@ -64,7 +59,7 @@ def generate_response(name, temperature, top_p, max_length ,prompt_input,message
     elif name == 'Gemini-pro':
         prompt = f"{string_dialogue} {prompt_input} Assistant: " + f'temperature={temperature}, {top_p}=top_p, max_length={max_length}, repetition_penalty=1'
         try:
-            model = load_Gemini_model()
+            model = Gemini_model
             response = model.generate_content(prompt).text
             return response
         except Exception as e:
@@ -113,18 +108,10 @@ def main():
 
 
 
-Google_Api_key = st.sidebar.text_input("Enter your Google API key",type='password') 
-Replicate_Api_key =st.sidebar.text_input("Enter your Replicate API key",type='password') 
-os.environ['REPLICATE_API_TOKEN'] = Replicate_Api_key 
  
-if not Google_Api_key and not Replicate_Api_key:
-    st.info("Please enter your Google API key and Replicate API key")
-elif not Google_Api_key:
-    st.info("Please enter your Google API key")  
-elif not Replicate_Api_key:
-    st.info("Please enter your Replicate API key")
-else:
-    main()    
+
+ 
+main() 
 
  
  

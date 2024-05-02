@@ -13,48 +13,59 @@ from sklearn.experimental import enable_iterative_imputer as IterativeImputer
 from category_encoders import TargetEncoder
 import numpy as np
 
-
+from dotenv import load_dotenv, set_key
 from logger import logging
-from utils import load_object,save_objects,initialize_artifact_folder,check_artifact_folder
-from Home import  Gemini_model
+from utils import load_object,save_objects,initialize_artifact_folder,check_artifact_folder,load_Gemini_model,get_api_key
+ 
 # Path to the artifact folder
 
 
-st.set_page_config(page_title="Feature Analysis", page_icon="🔍", layout='wide')
+ 
+st.set_page_config(page_title="📊 Features Analysis")
 
-
+Google_Api_key = get_api_key("Google_API_KEY")
+Gemini_model = load_Gemini_model(Google_Api_key)
 
 # Plot histogram for a feature
 def plot_unique_values(df, feature, target):
-   
-    # Calculate mean target value for each unique value of the feature
-    mean_target_values = df.groupby(feature)[target].mean().reset_index()
+    if df[feature].dtype == 'object':
+        category_counts = df.groupby([feature, target]).size().reset_index(name='Count')
 
-    # Create histogram plot with mean target values as text annotations
-    fig = px.histogram(df, x=feature, title=f"Distribution of {feature}", color=feature)
-    fig.update_traces(text=mean_target_values[target].round(2), textposition='outside')
+        # Create a bar plot showing the distribution of categorical targets by feature
+        fig = px.bar(category_counts, x=feature, y='Count', color=target, title=f"Categorical Distribution of {target} by {feature}")
 
-    # Customize layout to display mean target values as annotations
-    fig.update_layout(
-        xaxis_title=feature,
-        yaxis_title='Count',
-        showlegend=False,
-        annotations=[
-            dict(
-                x=val,
-                y=0,
-                text=f"Mean Target: {mean:.2f}",
-                showarrow=True,
-                arrowhead=0,
-                ax=0,
-                ay=-40
-            )
-            for val, mean in zip(mean_target_values[feature], mean_target_values[target])
-        ]
-    )
+        # Display the plot in Streamlit
+        st.plotly_chart(fig)
+    elif df[feature].dtype in ['int64', 'float64']:
+                
+        # Calculate mean target value for each unique value of the feature
+        mean_target_values = df.groupby(feature)[target].mean().reset_index()
+
+        # Create histogram plot with mean target values as text annotations
+        fig = px.histogram(df, x=feature, title=f"Distribution of {feature}", color=feature)
+        fig.update_traces(text=mean_target_values[target].round(2), textposition='outside')
+
+        # Customize layout to display mean target values as annotations
+        fig.update_layout(
+            xaxis_title=feature,
+            yaxis_title='Count',
+            showlegend=False,
+            annotations=[
+                dict(
+                    x=val,
+                    y=0,
+                    text=f"Mean Target: {mean:.2f}",
+                    showarrow=True,
+                    arrowhead=0,
+                    ax=0,
+                    ay=-40
+                )
+                for val, mean in zip(mean_target_values[feature], mean_target_values[target])
+            ]
+        )
 
     # Display the plot using Streamlit
-    st.plotly_chart(fig)
+        st.plotly_chart(fig)
 
 # Display missing values
 def display_missing_values(df, feature):
@@ -445,6 +456,7 @@ def impute_and_encode(df):
     return df    
 
 def commit_changes(df, action_log, name, target, description):
+    data = df.copy()
     custom_order = [
     "Drop",
     "CatImpute_Most frequent",
@@ -506,9 +518,11 @@ def commit_changes(df, action_log, name, target, description):
         except Exception as e:
             df = impute_and_encode(df)
             logging.error(f"Error generating New Data: {e}")
+            
+    df = impute_and_encode(data)
     data_path = os.path.join("artifact", f"Modified_{name}.csv")
     description = {
-                "name":name,
+                "name":f'Modified_{name}',
                 "target": target,
                 "Data_type":description
                 }  
@@ -575,8 +589,7 @@ def plot_feature_info(data,feature,target,name,description):
                 chi2_corr_text = Gemini_model.generate_content(f"in the context if {name} Dataset with brief description {description} explain Chi-Square test result between {feature} and {target} that is equal chi2{chi2:.2f} and p-value {p:.2e}")
                 st.session_state["chi2_explanation"] = chi2_corr_text.text
                 st.subheader("Chi-Square statistic's Explanation :")
-                st.write_stream([x for x in st.session_state["chi2_explanation"]])    
-
+                st.write_stream([x for x in st.session_state["chi2_explanation"]])     
     
     if feature_type in ['int64', 'float64']:
         
@@ -636,16 +649,27 @@ def plot_feature_info(data,feature,target,name,description):
 
             
     st.write('----------------------')
-    _,col2 = st.columns([1,1.65])
+    _,col2= st.columns([1,1.65])
     with col2:
         if st.button('🗑️ Drop Feature ❌'):
-            st.write('Operation Logged')
-            st.session_state.log.append({feature: 'Drop'})          
+            st.write('Operation Logged !')
+            st.session_state.log.append({feature: 'Drop'})  
+        st.write('')
+        st.write('')
+        st.write('')
+        st.write('')
+        st.write('')   
+        if st.button('Refresh ActionLog 🔄'):
+            st.write('')
     
-    if st.session_state.log == {}:
-        st.write('No Operation Logged')    
+    if st.session_state.log == []: 
+        st.write('----------')
+        with col2:
+            st.write('No Operations Logged !')
+             
     
-    if st.session_state.log:
+    
+    if st.session_state.log!=[]:
         st.write('----------------------')
         st.subheader('Action Log:')
         feature_dict = {}
@@ -671,13 +695,39 @@ def plot_feature_info(data,feature,target,name,description):
            
         
       
-        if untracked_feats is None:
-            st.write('All features have been tracked')
-        else:
-            st.write(f'these features remain to be done :') 
-            st.write(untracked_feats) 
+        
+        st.write('Impute or encode by Multiple features:')
+        untracked_ = st.multiselect('Pick a feature', untracked_feats)
+        
+        st.write('Operation to be performed :')
+        cat_untracked_ = [x for x in untracked_ if data[x].dtype == 'object']
+        num_untracked_ = [x for x in untracked_ if data[x].dtype != 'object']
 
+
+        if cat_untracked_!=[]: 
+            if st.button('Drop Features'):
+                st.write('Operation Logged')
+                for feature in cat_untracked_:
+                    st.session_state.log.append({feature: 'Drop'})
+
+            impute_option = st.selectbox("Select",['Most frequent','Constant: Missing','Target encoded imputation'])        
+            if st.button('Impute Features'):
+                st.write('Operation Logged')
+                for feature in cat_untracked_:
+                    st.session_state.log.append({feature: f'CatImpute_{impute_option}'})
+        if num_untracked_!=[]:
+            if st.button('Drop Features'):
+                st.write('Operation Logged')
+                for feature in cat_untracked_:
+                    st.session_state.log.append({feature: 'Drop'})
+            impute_option = st.selectbox("Select",['Mean','Median','KNN','Iterative'])
+            if st.button('Impute Features'):
+                st.write('Operation Logged')
+                for feature in num_untracked_:
+                    st.session_state.log.append({feature: f'NumImpute_{impute_option}'})
+        st.write(filterd_feature_dict)
         st.write('----------------------')
+        
         _,col2 = st.columns([1,1.65])
         if st.session_state.log and untracked_feats==[]:
             with col2:

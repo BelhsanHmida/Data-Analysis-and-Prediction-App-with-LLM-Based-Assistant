@@ -8,28 +8,26 @@ import sys
 import re
 import shutil
 
-from models import GenModel
+
 from data_ingestion import DataIngestion
 
 from exceptions import CustomException
 from logger import logging
-from utils import clear_artifacts, reset_session_state, validate_file_name, add_space   
+from utils import clear_artifacts, reset_session_state, validate_file_name, add_space ,set_api_key, get_api_key  , load_model
 
-sys.path.append(r'Data_Analysis_App')
-st.set_page_config(page_title="Data Analysis", page_icon="📊", layout='wide')        
+
+st.set_page_config(page_title="Home", page_icon="🏛️", layout='wide')   
+ 
+if 'load_api_keys' not in st.session_state:
+    st.session_state.load_api_keys = 0
 
 Api_key=st.sidebar.text_input("Enter your Google API key",type='password') 
-Replicate_Api_key=st.sidebar.text_input("Enter your Replicate API key",type='password') 
+if st.sidebar.button("Save API Keys"):
+    st.session_state.load_api_keys = 1
+if st.session_state.load_api_keys == 1:
+    set_api_key("Google_API_KEY", Api_key)
+     
 
-def load_model(Api_key,model_name):
-    try:
-        Gen_model = GenModel(Api_key,model_name)
-        Gen_model.load_model()
-        model=Gen_model.model
-        return model
-    except Exception as e:
-        st.error("Error loading model")
-        logging.info(f"Error loading model", e)
 
 @st.cache_data
 def Ingest_Data(df, data_description, target, Data_type,Data_name):
@@ -52,14 +50,21 @@ def plot_target_info(dataf):
     st.write('Target type: ', target_type)
     # If the target is categorical, create a count plot and a pie chart
     if target_type == 'object':
-        # Count plot
-        count_plot = px.histogram(target_column, x=target_column, title=f"Count Plot for {target_column}")
-        st.plotly_chart(count_plot)
+        
+        # Get the count of unique values in the target feature
+        value_counts = df[target].value_counts().reset_index()
+        value_counts.columns = ['Value', 'Count']
 
-        # Pie chart
-        value_counts = target_column.value_counts()
-        pie_chart = px.pie(value_counts.reset_index(), values=target_column, names='index', title=f"Proportions for {target}")
-        st.plotly_chart(pie_chart)
+        # Create a bar plot with Plotly to visualize the count of unique values
+        fig = px.bar(value_counts, x='Value', y='Count', title='Count of Unique Values in Target Feature')
+        st.plotly_chart(fig)
+        fig = px.pie(value_counts, names='Value', values='Count', title='Distribution of Unique Values in Target Feature')
+
+        # Display the pie chart in Streamlit
+        st.plotly_chart(fig)
+
+
+         
     
     # If the target is numerical, create distribution plot and provide summary statistics
     elif target_type in ['int64', 'float64']:
@@ -157,26 +162,26 @@ def get_missing_color(missing_percentage):
     
 def color_green(val):
         return 'color: green'    
-@st.cache_data
+
+
 def plt_Feature_description (dataf):
     context = dataf.description
     features = dataf.data.columns
     descriptions={}
-    counter=0
+    counter = 0
     for feature in features:
-        counter=+1
         if counter>30:
             time.sleep(30)
-            counter=0 
-        
+            counter = 0
         description = Gemini_model.generate_content(f"in the context of {context} dataset describe what is the feature :{feature} in 5 words or less")
-        descriptions[feature]=description
+        descriptions[feature]=description.text
     descriptions_df = pd.DataFrame(descriptions.items(), columns=['Feature', 'Ai Generated Description'])
    
     # Apply the lambda function to the specific column
     styled_df = descriptions_df.style.applymap(color_green, subset=['Ai Generated Description'])
     st.dataframe(styled_df,width=1500 )   
-@st.cache_data
+
+
 def plot_data_info(dataf,description):
     dataf.generate_data_overview()
     description_df=dataf.overview
@@ -194,10 +199,8 @@ def plot_data_info(dataf,description):
     
     st.subheader('Do you need help to understand Features?')
     try:
-        if data.shape[1]<30:
-            plt_Feature_description(dataf)
-        else:
-            st.write("Too many features to describe.")    
+        plt_Feature_description(dataf)
+
     except Exception as e:
         st.warning("Could not load description info could be a token limit try again in 2 mins.")  # Display a warning message
         
@@ -217,8 +220,7 @@ def plot_data_info(dataf,description):
 
 
 def main ():
-    
-     
+
     col1, col2 = st.columns([6, 1]) 
     global data_name
     st.title("🤖 Data Exploration")
@@ -278,7 +280,7 @@ def main ():
         add_space(1)
         
         st.subheader('Give a brief description of the data')
-        data_description = st.text_input(" e.g. 'House price prediction Dataset' 'Alzheimer Medical tests Dataset ")
+        data_description = st.text_input(" e.g. 'House price prediction Dataset', 'Alzheimer Medical tests Dataset' ")
         st.write("Data Description:", data_description)
         
         add_space(1)
@@ -304,12 +306,12 @@ def main ():
           
         col1, col2 = st.columns([1,2.3]) 
         with col2:
-            st.subheader("Data Loaded Successfully!")
+            st.subheader("Data Loaded Successfully! 🚀")
 
 
 
+ 
 
-Gemini_model=load_model(Api_key,'gemini-pro')
-    
+
 if __name__ == "__main__":  
     main()

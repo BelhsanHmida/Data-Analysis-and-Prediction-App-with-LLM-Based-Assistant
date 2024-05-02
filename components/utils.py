@@ -10,7 +10,64 @@ import pandas as pd
 from dataclasses import dataclass
 import pickl
 import dill
+from models import GenModel
+from dotenv import load_dotenv, set_key,dotenv_values
+import os
  
+
+# Set the path to your .env file
+env_file = os.path.join(os.getcwd(), '.env')  # .env file in the current directory
+
+
+
+def load_model(Api_key,model_name):
+    try:
+        Gen_model = GenModel(Api_key,model_name)
+        Gen_model.load_model()
+        model=Gen_model.model
+        return model
+    except Exception as e:
+        st.error("Error loading model")
+        logging.info(f"Error loading model", e)
+
+
+
+# Function to ensure the .env file exists
+def init_env_file(env_file):
+    if not os.path.exists(env_file):
+        with open(env_file, 'w') as f:
+            pass  # Creates an empty .env file
+    else:
+        load_dotenv(env_file)  # Loads existing .env file
+
+# Function to get an API key from the .env file
+# Function to set or update an API key
+def set_api_key( key_name, key_value):
+    """
+    Sets or updates an API key in the .env file.
+    """
+    init_env_file(env_file)  # Ensure the .env file exists
+    existing_keys = dotenv_values(env_file)  # Load existing keys
+    
+    # Check if the key already exists
+    if key_name in existing_keys:
+        # If it exists, update its value
+        set_key(env_file, key_name, key_value)
+    else:
+        # If it doesn't exist, add it
+        set_key(env_file, key_name, key_value)
+
+# Function to retrieve an API key
+def get_api_key( key_name):
+    """
+    Retrieves an API key from the .env file.
+    """
+    load_dotenv(env_file)  # Loads the keys from the .env file
+    return os.getenv(key_name)
+
+
+
+
 
 def save_objects(file_path, obj):
     try:
@@ -136,6 +193,14 @@ def load_and_display_file(file_path):
     else:  # If it's not a recognized format
         st.warning(f"Unrecognized file format: {file_path}")
 
+def load_Gemini_model(Google_Api_key):
+    try:
+        model = GenModel(Google_Api_key,'gemini-pro')
+        model.load_model()
+        return model.model
+    except Exception as e:
+        st.error("Error loading model")
+        logging.info(f"Error loading model", e)
 
 
 
