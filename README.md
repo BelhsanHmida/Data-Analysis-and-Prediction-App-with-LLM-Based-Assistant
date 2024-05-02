@@ -41,4 +41,9 @@ The code is organized with object-oriented principles to ensure maintainability 
 3. Activate it `conda activate venv`
 4. Install initial deps `pip install requirements.txt`
 5. Run the app `🏛️_Home.py`
+
+# Credits :
+  This project was developed by Mohamed Hmida.
+# License:
+  This project is licensed under the Apache license 2.0  License.
    
