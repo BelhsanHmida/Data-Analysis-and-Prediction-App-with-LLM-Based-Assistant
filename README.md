@@ -11,16 +11,34 @@ This application provides comprehensive tools for data analysis and feature engi
 7. [Contact](#contact) 📬
 
 ## Features ✨
-- **Data Analysis**: Tools for exploring, cleaning, and analyzing datasets to extract valuable insights 📊.
-- **Feature Engineering**: Methods to create, transform, and select features for optimal model performance 🛠️.
-- **Predictive Modeling**: Build, train, and evaluate predictive models for various applications 🔮.
-- **Assistant Chatbot**: A conversational assistant that uses Llama 3 and Google Gemini to guide users through data analysis, feature engineering, and predictive modeling 🤖.
-- **Interactive Interface**: An intuitive user interface for seamless interactions and insights 🖥️.
+- Import and manage datasets in CSV format.
+- Set data types (regression or classification) and provide dataset descriptions.
+- Conduct feature analysis, including imputation and encoding and get llm based suggestions .
+- Generate predictive models and view key metrics and their explanation .
+- Interact with a chatbot powered by Google's Gemini Pro 1.5 for AI-driven Help.
+  
+## Libraries and Technologies Used 🛠️
+- [**Streamlit**](https://streamlit.io/): For building an interactive web application.
+- [**Google's Gemini Pro 1.5**](https://blog.google/products/ai/gemini-ai): The underlying large language model for AI-based insights and the chatbot.
+- [**Plotly**](https://plotly.com/): For interactive data visualizations.
+- [**Scikit-Learn**](https://scikit-learn.org/stable/): For building machine learning models.
+- [**Scipy**](https://www.scipy.org/): For scientific computing and additional data manipulation tools.
+- [**Pandas**](https://pandas.pydata.org/): For data manipulation and analysis.
+- [**NumPy**](https://numpy.org/): For numerical computing.
 
-## Technologies Used 🛠️
-- **Streamlit**: A framework for building interactive web-based applications in Python.
-- **Llama 3**: A large language model used for conversational AI.
-- **Google Gemini**: Google's multi-modal AI model for more advanced conversational capabilities.
-- **Pandas**: A data analysis library for data manipulation and exploration.
-- **Scikit-learn**: A machine learning library for building predictive models.
-- **Matplotlib/Seaborn**: Libraries for data visualization and plotting.
+## End-to-End Design 🏁
+This app is designed with an end-to-end approach, ensuring smooth transitions between different stages of data analysis:
+- **Home**: Set up Google API keys, import datasets, and initialize analysis.
+- **Feature Analysis**: Define feature types and get suggestions for imputation and encoding.
+- **Prediction**: Build predictive models based on the data type and view key metrics.
+- **Assistant**: Interact with a smart chatbot for additional insights and guidance.
+
+The code is organized with object-oriented principles to ensure maintainability and scalability. This design approach allows for easier code modification and extension in future versions.
+# How to Use the App Localy 📝 
+
+1. Clone this Repository on your local machine
+2. Create a virtual environment `conda create -n venv python=3.9` 
+3. Activate it `conda activate venv`
+4. Install initial deps `pip install requirements.txt`
+5. Run the app `🏛️_Home.py`
+   
