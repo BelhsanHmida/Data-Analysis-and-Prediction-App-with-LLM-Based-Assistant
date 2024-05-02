@@ -33,7 +33,13 @@ This app is designed with an end-to-end approach, ensuring smooth transitions be
 - **Prediction**: Build predictive models based on the data type and view key metrics.
 - **Assistant**: Interact with a smart chatbot for additional insights and guidance.
 
-The code is organized with object-oriented principles to ensure maintainability and scalability. This design approach allows for easier code modification and extension in future versions.
+Object-Oriented Design 🔄
+The code is organized using object-oriented principles, ensuring maintainability and scalability:
+
+Modular Structure: Each feature and function is encapsulated within its module, promoting a clean and organized codebase.
+Code Reusability: Utility functions are housed in a separate module, allowing for code reuse across the app.
+Exception Handling: Custom exceptions and detailed logging ensure that errors are caught and addressed efficiently.
+
 # How to Use the App Localy 📝 
 
 1. Clone this Repository on your local machine
