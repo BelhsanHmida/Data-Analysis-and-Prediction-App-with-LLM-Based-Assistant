@@ -2,7 +2,7 @@ import streamlit as st
 
 # Define the about page
 def about_page():
-    st.title("About Our Data Analysis App 🌟")
+    st.title("About Data Analysis App 🌟")
     st.write("""
     Welcome to our Data Analysis App! This app is designed to help you analyze data, create predictions, and interact with a smart assistant for AI-driven insights. Let's dive into the key features of our app, which is comprised of four main pages: **Home**, **Feature Analysis**, **Prediction**, and **Assistant**.
 
